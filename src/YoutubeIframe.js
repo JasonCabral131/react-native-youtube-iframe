@@ -261,18 +261,11 @@ const YoutubeIframe = (props, ref) => {
       contentScale,
     );
 
-    if (useLocalHTML) {
-      const res = {html: ytScript.htmlString};
-      if (baseUrlOverride) {
-        res.baseUrl = baseUrlOverride;
-      }
-      return res;
+    const res = {html: ytScript.htmlString};
+    if (baseUrlOverride) {
+      res.baseUrl = baseUrlOverride;
     }
-
-    const base = baseUrlOverride || DEFAULT_BASE_URL;
-    const data = ytScript.urlEncodedJSON;
-
-    return {uri: base + '?data=' + data};
+    return res;
   }, [useLocalHTML, contentScale, baseUrlOverride, allowWebViewZoom]);
 
   return (

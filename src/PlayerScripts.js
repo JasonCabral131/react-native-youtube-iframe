@@ -157,25 +157,52 @@ export const MAIN_SCRIPT = (
       content="width=device-width, ${scale}"
     >
     <style>
-      body {
-        margin: 0;
+      * {
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+      }
+      html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        overflow: hidden !important;
+        background: black !important;
       }
       .container {
-        position: relative;
-        width: 100%;
-        height: 0;
-        padding-bottom: 56.25%;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: block !important;
       }
       .video {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+      }
+      iframe {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
       }
     </style>
   </head>
-  <body>
+  <body style="margin: 0 !important; padding: 0 !important; background-color: black !important; width: 100vw !important; height: 100vh !important; overflow: hidden !important;">
     <div class="container">
       <div class="video" id="player" />
     </div>
@@ -190,8 +217,8 @@ export const MAIN_SCRIPT = (
       var player;
       function onYouTubeIframeAPIReady() {
         player = new YT.Player('player', {
-          width: '1000',
-          height: '1000',
+          width: '100vw',
+          height: "100vh",
           videoId: '${videoId_s}',
           playerVars: {
             ${listParam}
@@ -211,6 +238,10 @@ export const MAIN_SCRIPT = (
             iv_load_policy: ${iv_load_policy},
             modestbranding: ${modestbranding_s},
             cc_load_policy: ${showClosedCaptions_s},
+            autoplay: 1,
+            mute: 1,
+            enablejsapi: 1,
+            origin: window.location.origin,
           },
           events: {
             'onReady': onPlayerReady,
@@ -235,6 +266,12 @@ export const MAIN_SCRIPT = (
       }
 
       function onPlayerReady(event) {
+        // Force autoplay for Android devices
+        setTimeout(function() {
+          if (player && typeof player.playVideo === 'function') {
+            player.playVideo();
+          }
+        }, 500);
         window.ReactNativeWebView.postMessage(JSON.stringify({eventType: 'playerReady'}))
       }
 
@@ -253,6 +290,41 @@ export const MAIN_SCRIPT = (
       document.addEventListener('mozfullscreenchange', onFullScreenChange)
       document.addEventListener('msfullscreenchange', onFullScreenChange)
       document.addEventListener('webkitfullscreenchange', onFullScreenChange)
+
+      // Handle visibility change for React Native navigation
+      var wasPlaying = false;
+      document.addEventListener('visibilitychange', function() {
+        if (player && typeof player.getPlayerState === 'function') {
+          if (document.hidden) {
+            // Page is hidden, store current state
+            var currentState = player.getPlayerState();
+            wasPlaying = (currentState === 1); // 1 = playing
+          } else {
+            // Page is visible again, resume if it was playing
+            if (wasPlaying) {
+              setTimeout(function() {
+                player.playVideo();
+              }, 100); // Small delay to ensure player is ready
+            }
+          }
+        }
+      });
+
+      // Additional listener for React Native WebView focus/blur
+      window.addEventListener('focus', function() {
+        if (player && typeof player.getPlayerState === 'function' && wasPlaying) {
+          setTimeout(function() {
+            player.playVideo();
+          }, 100);
+        }
+      });
+
+      window.addEventListener('blur', function() {
+        if (player && typeof player.getPlayerState === 'function') {
+          var currentState = player.getPlayerState();
+          wasPlaying = (currentState === 1); // Store playing state
+        }
+      });
 
       window.addEventListener('message', function (event) {
         const {data} = event;
